@@ -1,0 +1,238 @@
+/* `source("../")` limits class detection to `src/` (this file lives in src/app).
+   Without it Tailwind v4 scans the whole repo — including obsidian/ and .claude/,
+   where documented class *patterns* like duration-[var(--duration-*)] parse as
+   real candidates and emit CSS warnings. Docs are not a source of utilities. */
+@import "tailwindcss" source("../");
+
+/* ---------------------------------------------------------------------------
+   TIER 1 — PRIMITIVES  (`--raw-*`)
+   Raw literal values. The only tier allowed to contain a hex/px/ms literal.
+   Never referenced in markup, never bound into @theme. Rename freely.
+   Grammar: --raw-<category>-<name>[-<shade>]
+   See obsidian/frontend/design-system.md → "Token naming convention".
+   --------------------------------------------------------------------------- */
+:root {
+  --raw-color-white: #ffffff;
+  --raw-color-neutral-100: #ededed;
+  --raw-color-neutral-900: #171717;
+  --raw-color-neutral-950: #0a0a0a;
+
+  --raw-color-white-70: rgb(255 255 255 / 0.7);
+  --raw-color-white-12: rgb(255 255 255 / 0.12);
+  --raw-color-white-06: rgb(255 255 255 / 0.06);
+
+  /* Flavor palettes — the page re-dresses itself when a flavor is picked. */
+  --raw-flavor-blueberry-ground: #081a4a;
+  --raw-flavor-blueberry-deep: #040c26;
+  --raw-flavor-blueberry-glow: #2a5cff;
+  --raw-flavor-blueberry-accent: #ffa6dd;
+  --raw-flavor-lime-ground: #06301b;
+  --raw-flavor-lime-deep: #021509;
+  --raw-flavor-lime-glow: #1fbf5b;
+  --raw-flavor-lime-accent: #e7ff6a;
+  --raw-flavor-cherry-ground: #3d0713;
+  --raw-flavor-cherry-deep: #1a0309;
+  --raw-flavor-cherry-glow: #e0213f;
+  --raw-flavor-cherry-accent: #ffd36a;
+  --raw-flavor-mango-ground: #3d1d03;
+  --raw-flavor-mango-deep: #1c0b01;
+  --raw-flavor-mango-glow: #ff9a1a;
+  --raw-flavor-mango-accent: #fff1a8;
+  --raw-flavor-grape-ground: #230a45;
+  --raw-flavor-grape-deep: #0f0422;
+  --raw-flavor-grape-glow: #8a3dff;
+  --raw-flavor-grape-accent: #7dffd9;
+
+  --raw-radius-sm: 0.5rem;
+  --raw-radius-md: 0.75rem;
+  --raw-radius-lg: 0.9rem;
+
+  --raw-duration-fast: 150ms;
+  --raw-duration-normal: 250ms;
+  --raw-duration-slow: 900ms;
+}
+
+/* ---------------------------------------------------------------------------
+   TIER 2 — SEMANTIC  (role names, no namespace prefix)
+   Purpose, not appearance. Always `var(--raw-*)` — never a literal.
+   This is the themeable layer: dark mode overrides happen HERE, which is why
+   these are separate from the @theme bindings below (see the note there).
+   Grammar: --<role>[-<variant>][-<state>]
+   --------------------------------------------------------------------------- */
+:root {
+  --background: var(--raw-flavor-blueberry-ground);
+  --background-deep: var(--raw-flavor-blueberry-deep);
+  --glow: var(--raw-flavor-blueberry-glow);
+  --accent: var(--raw-flavor-blueberry-accent);
+  --accent-ink: var(--raw-flavor-blueberry-deep);
+  --foreground: var(--raw-color-white);
+  --foreground-muted: var(--raw-color-white-70);
+  --surface: color-mix(in srgb, var(--background-deep) 55%, transparent);
+  --surface-border: var(--raw-color-white-12);
+
+  --radius-card: var(--raw-radius-lg);
+  --menu-surface: var(--background-deep);
+  --menu-foreground: var(--foreground);
+
+  --duration-fast: var(--raw-duration-fast);
+  --duration-normal: var(--raw-duration-normal);
+  --duration-slow: var(--raw-duration-slow);
+
+  /* Consent UI (cookie banner + preferences modal) — its own roles so it can be
+     dressed in the project's brand without touching the page theme. Re-point
+     these at the project's tokens when the site gets its palette — see
+     obsidian/frontend/components/common.md → "Brand the consent UI". */
+  --consent-surface: var(--background-deep);
+  --consent-text: var(--foreground);
+  --consent-action: var(--accent);
+  --consent-action-text: var(--accent-ink);
+  --consent-radius: var(--raw-radius-md);
+  --consent-radius-control: var(--raw-radius-sm);
+}
+
+/* Flavor themes — Tier 2 overrides, set by data-flavor on <html>. */
+html[data-flavor="lime"] {
+  --background: var(--raw-flavor-lime-ground);
+  --background-deep: var(--raw-flavor-lime-deep);
+  --glow: var(--raw-flavor-lime-glow);
+  --accent: var(--raw-flavor-lime-accent);
+  --accent-ink: var(--raw-flavor-lime-deep);
+}
+
+html[data-flavor="cherry"] {
+  --background: var(--raw-flavor-cherry-ground);
+  --background-deep: var(--raw-flavor-cherry-deep);
+  --glow: var(--raw-flavor-cherry-glow);
+  --accent: var(--raw-flavor-cherry-accent);
+  --accent-ink: var(--raw-flavor-cherry-deep);
+}
+
+html[data-flavor="mango"] {
+  --background: var(--raw-flavor-mango-ground);
+  --background-deep: var(--raw-flavor-mango-deep);
+  --glow: var(--raw-flavor-mango-glow);
+  --accent: var(--raw-flavor-mango-accent);
+  --accent-ink: var(--raw-flavor-mango-deep);
+}
+
+html[data-flavor="grape"] {
+  --background: var(--raw-flavor-grape-ground);
+  --background-deep: var(--raw-flavor-grape-deep);
+  --glow: var(--raw-flavor-grape-glow);
+  --accent: var(--raw-flavor-grape-accent);
+  --accent-ink: var(--raw-flavor-grape-deep);
+}
+
+
+/* ---------------------------------------------------------------------------
+   THEME BINDINGS — map semantic tokens into Tailwind namespaces.
+   Every entry is exactly `--<tw-namespace>-<role>: var(--<role>)`.
+   `inline` is required: it inlines the var() into each utility, so the
+   dark-mode overrides on the Tier 2 tokens above cascade. Binding a literal
+   here instead would freeze the value and break theming.
+
+   Only these namespaces generate utilities (verified against tailwindcss
+   v4.3.3): --color-* --spacing-* --radius-* --leading-* --tracking-* --text-*
+   --font-* --ease-* --breakpoint-* --container-* --shadow-* --blur-* --animate-*
+   NOTE: there is NO --duration-* namespace in v4 — `duration-fast` compiles to
+   nothing. Durations stay Tier 2 only and are used as duration-[var(--duration-fast)].
+   --------------------------------------------------------------------------- */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-background-deep: var(--background-deep);
+  --color-glow: var(--glow);
+  --color-menu-surface: var(--menu-surface);
+  --color-menu-foreground: var(--menu-foreground);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-muted: var(--foreground-muted);
+  --color-surface: var(--surface);
+  --color-surface-border: var(--surface-border);
+  --radius-card: var(--radius-card);
+  --font-display: var(--font-anton);
+  --color-consent-surface: var(--consent-surface);
+  --color-consent-text: var(--consent-text);
+  --color-consent-action: var(--consent-action);
+  --color-consent-action-text: var(--consent-action-text);
+  --radius-consent: var(--consent-radius);
+  --radius-consent-control: var(--consent-radius-control);
+  --font-sans: var(--font-onest);
+
+  /* Leading floor for clipped TextEngine reveals — see
+     obsidian/frontend/text-engine.md → "Alignment & line-height". */
+  --leading-display: 1.1;
+
+  --ease-entrance: cubic-bezier(0.2, 0, 0, 1);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* `safe center`: a page taller than the viewport starts at the top instead of
+     being centred past the scroll origin (a long page — a privacy policy — lost
+     its back link and title above the top edge with plain `center`). One-screen
+     pages and the 404 stay centred. */
+  justify-content: safe center;
+  height: 100vh;
+  width: 100%;
+}
+
+@layer base {
+  /* Adaptive scaling grid — scales the root font-size with the viewport so a
+     rem-based layout stays proportional. Each breakpoint divides FONT_BASE
+     (16px) by the design base width its range was laid out at:
+       font-size: 16 * 100 / baseWidth  (vw)
+     Above 1920px the AdaptiveGrid component takes over (scale-up).
+     Keep in sync with src/components/common/grid/grid.config.ts. */
+  html {
+    font-size: 16px;
+  }
+
+  @media (max-width: 1920px) {
+    html {
+      font-size: 0.833333vw; /* 16 * 100 / 1920 */
+    }
+  }
+
+  @media (max-width: 1440px) {
+    html {
+      font-size: 1.111111vw; /* 16 * 100 / 1440 */
+    }
+  }
+
+  @media (max-width: 1024px) {
+    html {
+      font-size: 1.5625vw; /* 16 * 100 / 1024 */
+    }
+  }
+
+  @media (max-width: 640px) {
+    html {
+      font-size: 4.444444vw; /* 16 * 100 / 360 */
+    }
+  }
+}
+
+@layer utilities {
+}
+
+/* Film grain — a fine noise layer that takes the digital sheen off flat gradients. */
+@utility bg-grain {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+@layer components {
+}
+
+/* The consent banner is server-rendered (it paints with the page — it is the
+   phone's LCP element). Hidden before paint for a visitor who already chose
+   (`Cookie/consent-flag.ts`) and on the robot form, which has no visitor to
+   ask. Outside any layer and selector list on purpose. */
+html[data-consent] [data-cookie-banner],
+html:has(meta[name="x-robot-view"]) [data-cookie-banner] {
+  display: none;
+}
